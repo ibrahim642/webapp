@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Family Leave Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .container {
+            margin-top: 2rem;
+        }
+        
+        .section-title {
+            color: #333;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 1.5rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .leave-item {
+            padding: 1rem;
+            border-left: 4px solid #667eea;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+        }
+        
+        .member-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .leave-dates {
+            color: #666;
+            font-size: 0.95rem;
+            margin: 0.5rem 0;
+        }
+        
+        .leave-reason {
+            color: #888;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+        
+        .btn-group-custom {
+            margin-top: 1rem;
+        }
+        
+        .btn-sm-custom {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+        
+        .action-buttons {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        .action-buttons .btn {
+            margin: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a91 100%);
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">🏠 Family Leaves</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="nav-link">Welcome, <strong>{{ current_user.name }}</strong>!</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('my_leaves') }}">My Leaves</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('add_leave') }}">Add Leave</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <h2 class="section-title">📅 Family Leave Schedule</h2>
+        
+        {% if leaves_by_member %}
+            {% for member_name, member_leaves in leaves_by_member.items() %}
+                <div class="card">
+                    <div class="card-header">
+                        {{ member_name }} ({{ member_leaves|length }} leave{{ 's' if member_leaves|length != 1 else '' }})
+                    </div>
+                    <div class="card-body">
+                        {% for leave in member_leaves %}
+                            <div class="leave-item">
+                                <div class="leave-dates">
+                                    📆 <strong>{{ leave.start_date.strftime('%b %d, %Y') }}</strong> to <strong>{{ leave.end_date.strftime('%b %d, %Y') }}</strong>
+                                </div>
+                                <div class="member-name">{{ leave.leave_type }}</div>
+                                {% if leave.reason %}
+                                    <div class="leave-reason">Reason: {{ leave.reason }}</div>
+                                {% endif %}
+                                {% if leave.member_id == current_user.id %}
+                                    <div class="btn-group-custom">
+                                        <a href="{{ url_for('edit_leave', leave_id=leave.id) }}" class="btn btn-warning btn-sm-custom">Edit</a>
+                                        <form method="POST" action="{{ url_for('delete_leave', leave_id=leave.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm-custom" onclick="return confirm('Are you sure?')">Delete</button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card">
+                <div class="card-body empty-state">
+                    <p>No leaves scheduled yet. Be the first to add one!</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="action-buttons">
+            <a href="{{ url_for('add_leave') }}" class="btn btn-primary-custom">+ Add New Leave</a>
+            <a href="{{ url_for('my_leaves') }}" class="btn btn-outline-primary">View My Leaves</a>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
